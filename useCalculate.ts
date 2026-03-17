@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Operation = "add" | "subtract" | "multiply" | "divide";
+
+const operationSymbols: Record<Operation, string> = {
+  add: "+",
+  subtract: "−",
+  multiply: "×",
+  divide: "÷",
+};
 
 const sanitizeInput = (value: string) => {
   let sanitized = value.replace(",", ".");
@@ -26,7 +33,10 @@ const sanitizeInput = (value: string) => {
 };
 
 const formatResult = (value: number) => {
-  if (Number.isInteger(value)) return String(value);
+  if (Number.isInteger(value)) {
+    return String(value);
+  }
+
   return parseFloat(value.toFixed(4)).toString();
 };
 
@@ -34,15 +44,32 @@ const useCalculate = () => {
   const [num1, setNum1State] = useState("");
   const [num2, setNum2State] = useState("");
   const [result, setResult] = useState("");
+  const [error, setError] = useState("");
   const [operation, setOperation] = useState<Operation>("add");
 
-  const setNum1 = (value: string) => setNum1State(sanitizeInput(value));
-  const setNum2 = (value: string) => setNum2State(sanitizeInput(value));
+  const setNum1 = (value: string) => {
+    setNum1State(sanitizeInput(value));
+    if (error) setError("");
+  };
+
+  const setNum2 = (value: string) => {
+    setNum2State(sanitizeInput(value));
+    if (error) setError("");
+  };
+
+  const canCalculate = useMemo(() => {
+    return num1.trim() !== "" && num2.trim() !== "";
+  }, [num1, num2]);
+
+  const expression = useMemo(() => {
+    return `${num1 || "0"} ${operationSymbols[operation]} ${num2 || "0"}`;
+  }, [num1, num2, operation]);
 
   const clearValues = () => {
     setNum1State("");
     setNum2State("");
     setResult("");
+    setError("");
     setOperation("add");
   };
 
@@ -50,8 +77,11 @@ const useCalculate = () => {
     const n1 = parseFloat(num1);
     const n2 = parseFloat(num2);
 
+    setError("");
+
     if (Number.isNaN(n1) || Number.isNaN(n2)) {
-      setResult("Error");
+      setResult("");
+      setError("Ingresa números válidos.");
       return;
     }
 
@@ -69,13 +99,15 @@ const useCalculate = () => {
         break;
       case "divide":
         if (n2 === 0) {
-          setResult("No válido");
+          setResult("");
+          setError("No se puede dividir entre cero.");
           return;
         }
         value = n1 / n2;
         break;
       default:
-        setResult("error");
+        setResult("");
+        setError("Operación no válida.");
         return;
     }
 
@@ -88,10 +120,13 @@ const useCalculate = () => {
     num2,
     setNum2,
     result,
+    error,
     operation,
     setOperation,
     calculate,
     clearValues,
+    canCalculate,
+    expression,
   };
 };
 
